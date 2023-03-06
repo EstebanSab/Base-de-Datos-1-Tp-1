@@ -1,0 +1,118 @@
+Trabajo Practico 3
+
+Fecha de entrega: 4-Nov 22 hs
+
+
+
+Se solicita generar un archivo PDF que contenga caratula, número de trabajo práctico, enunciado, apellido y nombre de los integrantes.
+
+
+
+Además, debe adjuntarse la resolución de los siguientes puntos:
+
+
+
+1) A partir la base de datos definida en el trabajo practico anterior, generar los Inserts necesarios para realizar la carga de las tablas de su base de datos. El scrip debe funcionar bajo el concepto de Copiar/Pegar y no debe dar ningun tipo de error.
+
+
+
+2) Resolver las siguientes en SQL:
+
+  a- Listar los datos completos de los docentes que dictaron alguna materia este año y que tomaron mas de 5 finales este año
+
+  b- Listar los datos completos de los alumnos de Sistemas que rindieron todos los finales de 1, 2 y 3 año de su carrera 
+
+  c- Listar los datos completos de las materias de Abogacia a las que no se presentaron alumnos de Moron a rendir final este año 
+
+  d- Listar los datos completos de las materias en las que se inscribio el alumno con legajo 3.901 y que tengan mas de 5 finales este año con nota mayor a 4
+
+  e- Listar legajo y nombre de los alumnos de Sistemas que viven en Merlo y en la misma linea la cantidad de finales rendidos en Julio y en otra columna, la cantida de finales rendidos en Agosto de este año
+
+
+
+3) Resolver en algebra relacional las siguientes consultas:
+
+ a) Punto 2.b
+
+ b) Punto 2.c
+
+ c) Listar los datos completos de los alumnos de Merlo que rindieron 1 solo final en Agosto de este año
+
+
+
+alumno(nummatricula,nombre,apellido,fehaingreso,localidad)
+materia(idmateria,nombre,aniocarrera,departamento,carrera)
+profesor(legajoprofesor,nombre,anioingreso)
+curso(numcurso,idmateria,aula,anioapertura,cuatrimestre,comision)
+finales(fec,idmateria,nummatricula,legajoprofesor,nota)
+alumno_pertenece_curso(nummatricula,numcurso,idmateria,anio,nota)
+profesor_asignado_curso(legajoprofesor,numcurso,idmateria,anio)
+
+
+  
+
+
+
+2a)
+
+select p.* from profesor p,curso c,profesor_asignado_curso pac
+where p.legajoprofesor = pac.legajoprofesor
+and c.numcurso = pac.numcurso
+and c.idmateria = pac.idmateria
+and anio = 2021
+and p.legajoprofesor in (select p1.legajoprofesor from profesor p1,finales f
+							where p1.legajoprofesor = f.legajoprofesor
+						   and p.legajoprofesor = p1.legajoprofesor
+						   group by p1.legajoprofesor
+						   having count(*) > 5)
+
+
+
+
+2b)
+select a.* from alumno a,materia m,finales f
+where a.nummatricula = f.nummatricula
+and f.idmateria = m.idmateria
+and m.carrera like  'Sistemas'
+and a.nummatricula  in (select a1.nummatricula from materia m1,alumno a1,finales f
+						  where a.nummatricula = f.nummatricula
+						  and f.idmateria = m.idmateria
+						  and a.nummatricula = a1.nummatricula
+					   	   and m1.aniocarrera in ('primero','segundo','tercero')
+             				 )
+
+
+2c)
+
+select m.* from alumno a,materia m,finales f
+where a.nummatricula = f.nummatricula
+and f.idmateria = m.idmateria
+and m.carrera like  'Abogacia'
+and date_part('year',f.fec) = 2021 
+and m.idmateria not in (select m1.idmateria from alumno a1,materia m1,finales f1
+					   where m1.idmateria =f1.idmateria
+						and a1.nummatricula = f1.nummatricula
+						and a1.localidad ilike 'Moron')
+
+
+2e)
+select a.nummatricula ,a.nombre, count(*) as julio ,agosto
+from alumnos a,finales f,materia m,(select a1.nummatricula, count(*) as agosto from alumnos a1,finales f1,materia m1
+					where a1.nummmatricula = f1.nummatricula
+					and f1.idmateria = m1.idmateria
+					and m1.carrera like 'Sistemas'
+					and date_part('month',f1.fec) = 9
+					and date_part('year',f1.fec) = 2021
+					and a1.localidad like 'Merlo' 
+					group by a.nummatricula)sub
+where a.nummmatricula = f.nummatricula
+and f.idmateria = m.idmateria
+and a.nummatricula = sub.nummatricula
+and m.carrera like 'Sistemas'
+and date_part('month',f1.fec) = 9
+and date_part('year',f1.fec) = 2021
+and a.localidad like 'Merlo' 
+group by a.nummatricula,a.nombre
+
+
+
